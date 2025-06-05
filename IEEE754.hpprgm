@@ -1,0 +1,201 @@
+EXPORT BinAddOneWrap(binStr)
+BEGIN
+  LOCAL i := DIM(binStr);
+  LOCAL result := "";
+  LOCAL carry := 1;
+  LOCAL bit;
+
+  WHILE i > 0 DO
+    bit := MID(binStr, i, 1);
+    IF carry == 1 THEN
+      IF bit == "0" THEN
+        result := "1" + result;
+        carry := 0;
+      ELSE
+        result := "0" + result;
+      END;
+    ELSE
+      result := bit + result;
+    END;
+    i := i - 1;
+  END;
+
+  IF carry == 1 THEN
+    result := "";
+    FOR i FROM 1 TO DIM(binStr) DO
+      result := result + "0";
+    END;
+  END;
+
+  RETURN result;
+END;
+
+
+EXPORT toIEEE754(in)
+BEGIN
+  LOCAL sign, exponent, mantissa;
+  LOCAL absIn := ABS(in);
+  LOCAL intPart, fracPart, binInt, binFrac, i;
+  LOCAL result := "", bits, expLen, manLen, bias, bitChoice;
+
+  CHOOSE(bitChoice, "BitLength", "16", "32", "64", "128");
+
+  IF bitChoice == 1 THEN
+    expLen := 5;
+    manLen := 10;
+    bias := 15;
+    bits := 16;
+  ELSE
+    IF bitChoice == 2 THEN
+      expLen := 8;
+      manLen := 23;
+      bias := 127;
+      bits := 32;
+    ELSE
+      IF bitChoice == 3 THEN
+        expLen := 11;
+        manLen := 52;
+        bias := 1023;
+        bits := 64;
+      ELSE
+        IF bitChoice == 4 THEN
+          expLen := 15;
+          manLen := 112;
+          bias := 16383;
+          bits := 128;
+        END;
+      END;
+    END;
+  END;
+
+  // Sign
+  IF in < 0 THEN
+    sign := 1;
+  ELSE
+    sign := 0;
+  END;
+
+  // Integer and fration parts
+  intPart := IP(absIn);
+  fracPart := FP(absIn);
+
+  // Integer part conversion
+  binInt := "";
+  IF intPart == 0 THEN
+    binInt := "0";
+  ELSE
+    REPEAT
+      binInt := STRING(intPart MOD 2) + binInt;
+      intPart := IP(intPart / 2);
+    UNTIL intPart == 0;
+  END;
+
+  // Fraction part conversion
+  binFrac := "";
+  FOR i FROM 1 TO 115 DO
+    fracPart := fracPart * 2;
+    IF fracPart ≥ 1 THEN
+      binFrac := binFrac + "1";
+      fracPart := fracPart - 1;
+    ELSE
+      binFrac := binFrac + "0";
+    END;
+  END;
+
+  // Normalization
+  LOCAL firstOne := INSTRING(binInt, "1");
+  IF firstOne > 0 THEN
+    exponent := DIM(binInt) - firstOne;
+    mantissa := MID(binInt, firstOne + 1) + binFrac;
+  ELSE
+    firstOne := INSTRING(binFrac, "1");
+    exponent := -firstOne;
+    mantissa := MID(binFrac, firstOne + 1);
+  END;
+
+  // Bias
+  exponent := exponent + bias;
+
+  // Exponent conversion
+  LOCAL binExp := "";
+  REPEAT
+    binExp := STRING(exponent MOD 2) + binExp;
+    exponent := IP(exponent / 2);
+  UNTIL exponent == 0;
+
+  binExp := MID("00000000" + binExp, DIM("00000000" + binExp) - (expLen - 1), expLen);
+
+  // Mantissa preparation
+  LOCAL extMan := MID(mantissa + "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", 1, manLen + 1);
+  mantissa := MID(extMan, 1, manLen);
+  LOCAL roundBit := MID(extMan, manLen + 1, 1);
+
+  // Result put together
+  result := STRING(sign) + binExp + mantissa;
+
+  // Rounding up
+  IF roundBit == "1" THEN
+    result := BinAddOneWrap(result);
+  END;
+
+  MSGBOX("IEEE 754 (" + STRING(bits) + "-bit): " + result);
+  RETURN result;
+END;
+
+EXPORT fromIEEE754(inputStr)
+BEGIN
+  LOCAL bits, bitLen, expLen, manLen, bias;
+  LOCAL signBit, expBits, manBits, sign, exponent, mantissa;
+  LOCAL i, val, frac, fullBits;
+
+  CHOOSE(bits, "BitLength", "16", "32", "64", "128");
+  IF bits == 1 THEN
+    expLen := 5; manLen := 10; bias := 15;
+  ELSE
+    IF bits == 2 THEN
+      expLen := 8; manLen := 23; bias := 127;
+    ELSE
+      IF bits == 3 THEN
+        expLen := 11; manLen := 52; bias := 1023;
+      ELSE
+        expLen := 15; manLen := 112; bias := 16383;
+      END;
+    END;
+  END;
+  bitLen := 1 + expLen + manLen;
+
+  // Adding zeros if the provided string is too short
+  fullBits := RIGHT("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" + inputStr, bitLen);
+
+  // Separating the parts
+  signBit := MID(fullBits, 1, 1);
+  expBits := MID(fullBits, 2, expLen);
+  manBits := MID(fullBits, 2 + expLen, manLen);
+
+  // Sign
+  sign := IFTE(signBit == "1", -1, 1);
+
+  // Exponent
+  exponent := 0;
+  FOR i FROM 1 TO expLen DO
+    exponent := exponent * 2 + (MID(expBits, i, 1) == "1");
+  END;
+  exponent := exponent - bias;
+
+  // Mantissa
+  frac := 0;
+  FOR i FROM 1 TO manLen DO
+    IF MID(manBits, i, 1) == "1" THEN
+      frac := frac + 2^(-i);
+    END;
+  END;
+
+  IF expBits ≠ LEFT("1", expLen) THEN
+    val := sign * (1 + frac) * 2^exponent;
+  ELSE
+    val := "NaN or Inf";
+  END;
+
+  RETURN val;
+END;
+
