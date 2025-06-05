@@ -5,15 +5,25 @@ usage:
 
 toIEEE754(realNumber), you will be prompted to choose either 16, 32, 64 or 128 bit output, it will return a string of bits
 ex.
+
 toIEEE754(-2.137)
+
 user chooses 64
+
 "1100000000000001000110001001001101110100101111000110101001111111"
+
+
 
 fromIEEE754(stringOfBits), you will be prompted to choose either 16, 32, 64 or 128 bit input, it will return a real number
 ex.
+
 fromIEEE754("1100000000000001000110001001001101110100101111000110101001111111")
+
 user chooses 64
+
 −2.137
+
+
 
 NOTE:
 Te sting of bits that's being provided is rather useless without getting rid of the quotation marks so the easiest way of getting rid of them is by using built-in EXPR() function
