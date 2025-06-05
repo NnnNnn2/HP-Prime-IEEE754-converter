@@ -16,7 +16,7 @@ user chooses 64
 −2.137
 
 NOTE:
-Te sting of bits that's being provided is rather useless without getting rid of the quotation marks so he easiest way of getting rid of them is by using built-in EXPR() function
+Te sting of bits that's being provided is rather useless without getting rid of the quotation marks so the easiest way of getting rid of them is by using built-in EXPR() function
 ex.
 EXPR("#0100000001000110:16b")
 will return
