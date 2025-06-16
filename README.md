@@ -26,9 +26,9 @@ user chooses 64
 
 
 NOTE:
-Te sting of bits that's being provided is rather useless without getting rid of the quotation marks so the easiest way of getting rid of them is by using built-in EXPR() function
+The sting of bits that's being provided is rather useless without getting rid of the quotation marks so the easiest way of getting rid of them is by using built-in EXPR() function
 ex.
 EXPR("#0100000001000110:16b")
 will return
 #0100000001000110:16b
-which is a 16-bit integer that can be nonverted using built-in BASE menu or external functions
+which is a 16-bit integer that can be converted using built-in BASE menu or external functions
